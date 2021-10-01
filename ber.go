@@ -189,7 +189,7 @@ func readObject(r *bytes.Reader) (obj asn1Object, err error) {
 		obj = p
 		return
 	} else {
-		var subObjects []asn1Object
+		subObjects := make([]asn1Object, 0)
 		var sobj asn1Object
 		if length > 0 {
 			content := make([]byte, length)
@@ -207,7 +207,7 @@ func readObject(r *bytes.Reader) (obj asn1Object, err error) {
 			if err != nil && err != io.EOF {
 				return
 			}
-			if err == io.EOF && length > 0 {
+			if err == io.EOF && length >= 0 {
 				err = nil
 				break
 			}
