@@ -112,17 +112,12 @@ type attribute struct {
 }
 
 func marshalAttributes(attrs []attribute) ([]byte, error) {
-	encodedAttributes, err := asn1.Marshal(struct {
-		A []attribute `asn1:"set"`
-	}{A: attrs})
+	encodedAttributes, err := asn1.MarshalWithParams(attrs, "set")
 	if err != nil {
 		return nil, err
 	}
 
-	// Remove the leading sequence octets
-	var raw asn1.RawValue
-	asn1.Unmarshal(encodedAttributes, &raw)
-	return raw.Bytes, nil
+	return encodedAttributes, nil
 }
 
 type rawCertificates struct {
