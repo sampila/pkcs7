@@ -41,13 +41,16 @@ type unsignedData []byte
 
 var (
 	// Signed Data OIDs
-	OIDData                   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 1}
-	OIDSignedData             = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}
-	OIDEnvelopedData          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 3}
-	OIDEncryptedData          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 6}
-	OIDAttributeContentType   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
-	OIDAttributeMessageDigest = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
-	OIDAttributeSigningTime   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 5}
+	OIDData                          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 1}
+	OIDSignedData                    = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}
+	OIDEnvelopedData                 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 3}
+	OIDEncryptedData                 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 6}
+	OIDAttributeContentType          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
+	OIDAttributeMessageDigest        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
+	OIDAttributeSigningTime          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 5}
+	OIDAttributeTimeStampToken       = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 16, 2, 14}
+	OIDAttributeSigningCertificateV2 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 16, 2, 47}
+	OIDAttributeAdobeRevocation      = asn1.ObjectIdentifier{1, 2, 840, 113583, 1, 1, 8}
 
 	// Digest Algorithms
 	OIDDigestAlgorithmSHA1   = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 26}
@@ -115,9 +118,37 @@ func getDigestOIDForSignatureAlgorithm(digestAlg x509.SignatureAlgorithm) (asn1.
 	return nil, fmt.Errorf("pkcs7: cannot convert hash to oid, unknown hash algorithm")
 }
 
+// getDigestOIDForHashAlgorithm takes a pkix algorithm identifier
+// and returns the corresponding OID digest algorithm.
+func getDigestOIDForHashAlgorithm(digestAlg crypto.Hash) (asn1.ObjectIdentifier, error) {
+	switch digestAlg {
+	case crypto.SHA1:
+		return OIDDigestAlgorithmSHA1, nil
+	case crypto.SHA256:
+		return OIDDigestAlgorithmSHA256, nil
+	case crypto.SHA384:
+		return OIDDigestAlgorithmSHA384, nil
+	case crypto.SHA512:
+		return OIDDigestAlgorithmSHA512, nil
+	}
+	return nil, ErrUnsupportedAlgorithm
+}
+
+// EncryptionAlgorithmReporter allows custom crypto.Signer implementations
+// to report their encryption algorithm OID.
+type EncryptionAlgorithmReporter interface {
+	EncryptionAlgorithmOID() asn1.ObjectIdentifier
+}
+
 // getOIDForEncryptionAlgorithm takes the private key type of the signer and
 // the OID of a digest algorithm to return the appropriate signerInfo.DigestEncryptionAlgorithm
 func getOIDForEncryptionAlgorithm(pkey crypto.PrivateKey, OIDDigestAlg asn1.ObjectIdentifier) (asn1.ObjectIdentifier, error) {
+	// Evaluate whether pkey implements custom EncryptionAlgorithmReporter.
+	reporter, ok := pkey.(EncryptionAlgorithmReporter)
+	if ok {
+		return reporter.EncryptionAlgorithmOID(), nil
+	}
+
 	switch pkey.(type) {
 	case *rsa.PrivateKey:
 		switch {
