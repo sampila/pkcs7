@@ -403,8 +403,6 @@ func testUnmarshal(t *testing.T, sig string) {
 					t.Logf("\t\tIssuer and Serial: %v", cert.IssuerSerial)
 				}
 			} else if attr.Type.Equal(OIDAttributeAdobeRevocation) {
-				// t.Logf("raw: %v", base64.StdEncoding.EncodeToString(attr.Value.Bytes))
-
 				var revInfo RevocationInfoArchival
 				if leftover, err := asn1.Unmarshal(attr.Value.Bytes, &revInfo); err != nil || len(leftover) > 0 {
 					t.Log("err", err)
@@ -412,7 +410,7 @@ func testUnmarshal(t *testing.T, sig string) {
 				}
 
 				for _, ocspx := range revInfo.Ocsp {
-					// verify ocsp response
+					// Verify ocsp response.
 					ocspRes, err := ocsp.ParseResponseForCert(ocspx.FullBytes, certs[0], certs[1])
 					if err != nil {
 						t.Log("err", err)
@@ -423,7 +421,6 @@ func testUnmarshal(t *testing.T, sig string) {
 					t.Logf("SerialNumber: %v", ocspRes.SerialNumber)
 					t.Logf("ProducedAt: %v", ocspRes.ProducedAt)
 				}
-
 			} else {
 				var test string
 				if _, err := asn1.Unmarshal(attr.Value.Bytes, &test); err == nil {
@@ -435,37 +432,6 @@ func testUnmarshal(t *testing.T, sig string) {
 		}
 
 		t.Logf("encrypt algo: %v", si.DigestEncryptionAlgorithm)
-
-		t.Log("unauthentication attributes:")
-		for _, attr := range si.UnauthenticatedAttributes {
-			t.Log("\toid", attr.Type)
-
-			if attr.Type.Equal(OIDAttributeTimeStampToken) {
-				v, err := ParseTS(attr.Value.Bytes)
-				if err != nil {
-					t.Log("err", err)
-					continue
-				}
-
-				t.Logf("\thash algo: %v", v.HashAlgorithm)
-				t.Logf("\tHashed: %v", v.HashedMessage)
-				t.Logf("\tTime: %v", v.Time)
-				t.Logf("\tAccuracy: %v", v.Accuracy)
-				t.Log("\tCertificates:")
-				for _, cert := range v.Certificates {
-					t.Logf("\t\tIssuer: %v", cert.Issuer)
-					t.Logf("\t\tSerial: %v", cert.SerialNumber)
-				}
-			} else {
-				var test string
-				if _, err := asn1.Unmarshal(attr.Value.Bytes, &test); err == nil {
-					t.Log("\tvalue string:", test)
-				} else {
-					t.Log("\tvalue", attr.Value.Bytes)
-				}
-			}
-
-		}
 	}
 
 	t.Log("<=====================================>")

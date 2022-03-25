@@ -11,9 +11,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"net/http"
 	"time"
 )
 
@@ -387,65 +385,6 @@ func (sd *SignedData) AddTimestampTokenToSigner(signerID int, tst []byte) (err e
 		return err
 	}
 	return nil
-}
-
-// AddTimestampToSigner requests a RFC3161 timestamp from an upstream tsa for a
-// given signer and inserts it into the unauthenticated attributes of that signer.
-func (sd *SignedData) AddTimestampToSigner(signerID int, tsa string) (err error) {
-	opts := new(TSRequestOptions)
-	opts.Hash, err = getHashForOID(sd.digestOid)
-	if err != nil {
-		return err
-	}
-	opts.Certificates = true
-	if len(sd.sd.SignerInfos) < (signerID + 1) {
-		return fmt.Errorf("no signer information found for ID %d", signerID)
-	}
-	tsreq, err := CreateTSRequest(sd.sd.SignerInfos[signerID].EncryptedDigest, opts)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", tsa, bytes.NewReader(tsreq))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/timestamp-query")
-	cli := &http.Client{}
-	resp, err := cli.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp == nil {
-		return fmt.Errorf("tsa returned empty response")
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("tsa returned \"%d %s\" instead of 200 OK", resp.StatusCode, resp.Status)
-	}
-
-	// Parse it to make sure we got a valid response.
-	var tsResp timeStampResp
-	rest, err := asn1.Unmarshal(body, &tsResp)
-	if err != nil {
-		return err
-	}
-	if len(rest) > 0 {
-		return fmt.Errorf("trailing data in timestamp response")
-	}
-
-	if tsResp.Status.Status > 0 {
-		return fmt.Errorf("%s: %s", pkiFailureInfo(tsResp.Status.FailInfo).String(), tsResp.Status.StatusString)
-	}
-
-	if len(tsResp.TimeStampToken.Bytes) == 0 {
-		return fmt.Errorf("no pkcs7 data in timestamp response")
-	}
-	return sd.AddTimestampTokenToSigner(signerID, tsResp.TimeStampToken.Bytes)
 }
 
 // AddCertificate adds the certificate to the payload. Useful for parent certificates
