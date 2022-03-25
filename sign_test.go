@@ -15,8 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-
-	"golang.org/x/crypto/ocsp"
 )
 
 func TestSign(t *testing.T) {
@@ -401,25 +399,6 @@ func testUnmarshal(t *testing.T, sig string) {
 					t.Logf("\t\tHash Algoritm: %v", cert.HashAlgorithm)
 					t.Logf("\t\tCert hash: %v", string(cert.CertHash))
 					t.Logf("\t\tIssuer and Serial: %v", cert.IssuerSerial)
-				}
-			} else if attr.Type.Equal(OIDAttributeAdobeRevocation) {
-				var revInfo RevocationInfoArchival
-				if leftover, err := asn1.Unmarshal(attr.Value.Bytes, &revInfo); err != nil || len(leftover) > 0 {
-					t.Log("err", err)
-					continue
-				}
-
-				for _, ocspx := range revInfo.Ocsp {
-					// Verify ocsp response.
-					ocspRes, err := ocsp.ParseResponseForCert(ocspx.FullBytes, certs[0], certs[1])
-					if err != nil {
-						t.Log("err", err)
-						continue
-					}
-
-					t.Logf("Status: %v", ocspRes.Status)
-					t.Logf("SerialNumber: %v", ocspRes.SerialNumber)
-					t.Logf("ProducedAt: %v", ocspRes.ProducedAt)
 				}
 			} else {
 				var test string
