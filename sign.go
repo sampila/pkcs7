@@ -348,8 +348,11 @@ func (si *signerInfo) SetUnauthenticatedAttributes(extraUnsignedAttrs []Attribut
 	return nil
 }
 
+// TimestampTokenRequestCallback callback of timestamp token request.
 type TimestampTokenRequestCallback func(digest []byte) ([]byte, error)
 
+// RequestSignerTimestampToken add request of timestamp token with `signerID`
+// the request of timestamp token is called within `callback` function.
 func (sd *SignedData) RequestSignerTimestampToken(signerID int, callback TimestampTokenRequestCallback) error {
 	if len(sd.sd.SignerInfos) < (signerID + 1) {
 		return fmt.Errorf("no signer information found for ID %d", signerID)
@@ -366,8 +369,8 @@ func (sd *SignedData) RequestSignerTimestampToken(signerID int, callback Timesta
 	return sd.AddTimestampTokenToSigner(signerID, tst)
 }
 
-// AddTimestampTokenToSigner inserts TimestampToken which described in RFC3161 into
-// unauthenticated attribute of that signer.
+// AddTimestampTokenToSigner inserts `tst` TimestampToken which described in RFC3161 into
+// unauthenticated attribute of `signerID`.
 func (sd *SignedData) AddTimestampTokenToSigner(signerID int, tst []byte) (err error) {
 	if len(sd.sd.SignerInfos) < (signerID + 1) {
 		return fmt.Errorf("no signer information found for ID %d", signerID)
