@@ -370,7 +370,7 @@ func (sd *SignedData) RequestSignerTimestampToken(signerID int, callback Timesta
 }
 
 // AddTimestampTokenToSigner inserts `tst` TimestampToken which described in RFC3161 into
-// unauthenticated attribute of `signerID`.
+// unauthenticated attribute of `signerID` which obtaioned from identity service.
 func (sd *SignedData) AddTimestampTokenToSigner(signerID int, tst []byte) (err error) {
 	if len(sd.sd.SignerInfos) < (signerID + 1) {
 		return fmt.Errorf("no signer information found for ID %d", signerID)
